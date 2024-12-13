@@ -2,6 +2,12 @@ package com.mycompany.gestiondiscos;
 
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.InputMismatchException;
 
 class Disco {
     private String titulo;
@@ -37,12 +43,22 @@ public class GestionDiscos {
 
     public GestionDiscos() {
         discos = new ArrayList<>();
+        cargarDiscos();  // Cargar discos desde archivo al iniciar el programa
     }
 
     public void agregarDisco(String titulo, String artista, int anio) {
+        // Validaciones
+        if (anio <= 0) {
+            throw new IllegalArgumentException("El año debe ser positivo.");
+        }
+        if (titulo.isEmpty() || artista.isEmpty()) {
+            throw new IllegalArgumentException("El título y el artista no pueden estar vacíos.");
+        }
+
         Disco nuevoDisco = new Disco(titulo, artista, anio);
         discos.add(nuevoDisco);
         System.out.println("Disco agregado: " + nuevoDisco);
+        guardarDiscos();  // Guardar discos en el archivo después de agregar uno nuevo
     }
 
     public void mostrarDiscos() {
@@ -69,6 +85,32 @@ public class GestionDiscos {
         if (!encontrado) {
             System.out.println("Disco no encontrado.");
         }
+        guardarDiscos();  // Guardar los discos después de una eliminación
+    }
+
+    // Guardar discos en un archivo de texto
+    public void guardarDiscos() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("discos.txt"))) {
+            for (Disco disco : discos) {
+                writer.write(disco.getTitulo() + "," + disco.getArtista() + "," + disco.getAnio());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error al guardar los discos.");
+        }
+    }
+
+    // Cargar discos desde un archivo de texto
+    public void cargarDiscos() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("discos.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] datos = line.split(",");
+                discos.add(new Disco(datos[0], datos[1], Integer.parseInt(datos[2])));
+            }
+        } catch (IOException e) {
+            System.out.println("Error al cargar los discos.");
+        }
     }
 
     public static void main(String[] args) {
@@ -83,8 +125,15 @@ public class GestionDiscos {
             System.out.println("4. Salir");
             System.out.print("Seleccione una opción: ");
 
-            int opcion = scanner.nextInt();
-            scanner.nextLine(); // Consumir el salto de línea después del número
+            int opcion;
+            try {
+                opcion = scanner.nextInt();
+                scanner.nextLine(); // Consumir el salto de línea después del número
+            } catch (InputMismatchException e) {
+                System.out.println("Entrada inválida. Por favor, ingrese un número.");
+                scanner.nextLine(); // Limpiar el buffer
+                continue;
+            }
 
             switch (opcion) {
                 case 1:
@@ -93,8 +142,19 @@ public class GestionDiscos {
                     System.out.print("Ingrese el artista del disco: ");
                     String artista = scanner.nextLine();
                     System.out.print("Ingrese el año del disco: ");
-                    int anio = scanner.nextInt();
-                    gestionDiscos.agregarDisco(titulo, artista, anio);
+                    int anio;
+                    try {
+                        anio = scanner.nextInt();
+                    } catch (InputMismatchException e) {
+                        System.out.println("Por favor, ingrese un año válido.");
+                        scanner.nextLine(); // Limpiar el buffer
+                        continue;
+                    }
+                    try {
+                        gestionDiscos.agregarDisco(titulo, artista, anio);
+                    } catch (IllegalArgumentException e) {
+                        System.out.println(e.getMessage());
+                    }
                     break;
                 case 2:
                     gestionDiscos.mostrarDiscos();
